@@ -1,4 +1,4 @@
-import { GitHubConfig, AppData } from '../types.ts';
+import { GitHubConfig, AppData } from '../types';
 
 export const saveToGitHub = async (config: GitHubConfig, data: AppData): Promise<boolean> => {
   if (!config.token || !config.repo || !config.owner) return false;

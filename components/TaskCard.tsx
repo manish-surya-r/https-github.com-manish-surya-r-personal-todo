@@ -1,6 +1,6 @@
 import React from 'react';
-import { Task, TimeSavingPotential } from '../types.ts';
-import { Icons } from '../constants.tsx';
+import { Task, TimeSavingPotential } from '../types';
+import { Icons } from '../constants';
 import { formatDistanceToNow, isBefore, addDays } from 'date-fns';
 
 interface Props {

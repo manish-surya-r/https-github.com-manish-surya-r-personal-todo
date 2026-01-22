@@ -11,12 +11,12 @@ import {
   UrgencyLevel, 
   ImportanceLevel, 
   TimeSavingPotential 
-} from './types.ts';
-import { Icons, CATEGORIES } from './constants.tsx';
-import { TaskCard } from './components/TaskCard.tsx';
-import { NotificationPanel } from './components/NotificationPanel.tsx';
-import { GitHubSettings } from './components/GitHubSettings.tsx';
-import { saveToGitHub, fetchFromGitHub } from './services/githubService.ts';
+} from './types';
+import { Icons, CATEGORIES } from './constants';
+import { TaskCard } from './components/TaskCard';
+import { NotificationPanel } from './components/NotificationPanel';
+import { GitHubSettings } from './components/GitHubSettings';
+import { saveToGitHub, fetchFromGitHub } from './services/githubService';
 
 const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
 

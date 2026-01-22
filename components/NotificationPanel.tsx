@@ -1,6 +1,6 @@
 import React from 'react';
-import { Task } from '../types.ts';
-import { Icons } from '../constants.tsx';
+import { Task } from '../types';
+import { Icons } from '../constants';
 import { isBefore, addHours } from 'date-fns';
 
 interface Props {
