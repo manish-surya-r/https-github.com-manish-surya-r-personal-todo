@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Task, 
@@ -18,7 +17,8 @@ import { TaskCard } from './components/TaskCard';
 import { NotificationPanel } from './components/NotificationPanel';
 import { GitHubSettings } from './components/GitHubSettings';
 import { saveToGitHub, fetchFromGitHub } from './services/githubService';
-import { v4 as uuidv4 } from 'uuid';
+
+const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
 
 const App: React.FC = () => {
   const [data, setData] = useState<AppData>(() => {
@@ -35,12 +35,9 @@ const App: React.FC = () => {
   const [showGhSettings, setShowGhSettings] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  // Entity Modals (Boolean for new, Object for edit)
   const [showTaskForm, setShowTaskForm] = useState<Task | boolean>(false);
   const [showVisionForm, setShowVisionForm] = useState<Vision | boolean>(false);
   const [showGoalForm, setShowGoalForm] = useState<Goal | boolean>(false);
-  
-  // Personal Info Modals
   const [showCategoryForm, setShowCategoryForm] = useState<PersonalCategory | boolean>(false);
   const [showItemForm, setShowItemForm] = useState<{catId: string, item?: PersonalItem} | null>(null);
   const [showSubItemForm, setShowSubItemForm] = useState<{catId: string, itemId: string, subItem?: PersonalSubItem} | null>(null);
@@ -53,18 +50,15 @@ const App: React.FC = () => {
     localStorage.setItem('manish_gh_config', JSON.stringify(ghConfig));
   }, [ghConfig]);
 
-  // Added toggleTask to fix reference error and handle task completion
   const toggleTask = (id: string) => {
     setData(prev => ({
       ...prev,
       tasks: prev.tasks.map(t => 
-        t.id === id 
-          ? { 
-              ...t, 
-              status: t.status === 'pending' ? 'completed' : 'pending',
-              completedAt: t.status === 'pending' ? new Date().toISOString() : undefined 
-            } 
-          : t
+        t.id === id ? { 
+          ...t, 
+          status: t.status === 'pending' ? 'completed' : 'pending',
+          completedAt: t.status === 'pending' ? new Date().toISOString() : undefined
+        } : t
       )
     }));
   };
@@ -78,9 +72,9 @@ const App: React.FC = () => {
     const success = await saveToGitHub(ghConfig, data);
     if (success) {
       setData(prev => ({ ...prev, lastSync: new Date().toISOString() }));
-      alert("All data saved to your private GitHub repo successfully!");
+      alert("Success: Master Pulse data synced to private GitHub repo.");
     } else {
-      alert("Sync failed. Please verify your Personal Access Token and Repo details in Settings.");
+      alert("Sync Failed: Check token permissions or repo existence.");
     }
     setIsSyncing(false);
   }, [data, ghConfig]);
@@ -94,19 +88,18 @@ const App: React.FC = () => {
     const remoteData = await fetchFromGitHub(ghConfig);
     if (remoteData) {
       setData(remoteData);
-      alert("Latest data retrieved from GitHub.");
+      alert("Success: Remote data loaded.");
     } else {
-      alert("Could not fetch data. Ensure the file exists in the repository.");
+      alert("Error: Could not retrieve data from GitHub.");
     }
     setIsSyncing(false);
   }, [ghConfig]);
 
-  // Form Handlers
   const handleTaskSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newTask: Task = {
-      id: typeof showTaskForm === 'object' ? showTaskForm.id : uuidv4(),
+      id: typeof showTaskForm === 'object' ? showTaskForm.id : generateId(),
       title: formData.get('title') as string,
       category: formData.get('category') as string,
       deadline: formData.get('deadline') as string,
@@ -136,7 +129,7 @@ const App: React.FC = () => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newVision: Vision = {
-      id: typeof showVisionForm === 'object' ? showVisionForm.id : uuidv4(),
+      id: typeof showVisionForm === 'object' ? showVisionForm.id : generateId(),
       text: formData.get('text') as string,
       timeline: formData.get('timeline') as string,
     };
@@ -153,7 +146,7 @@ const App: React.FC = () => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newGoal: Goal = {
-      id: typeof showGoalForm === 'object' ? showGoalForm.id : uuidv4(),
+      id: typeof showGoalForm === 'object' ? showGoalForm.id : generateId(),
       title: formData.get('title') as string,
       timeline: formData.get('timeline') as string,
       plans: (formData.get('plans') as string).split('\n').filter(p => p.trim() !== ''),
@@ -176,7 +169,7 @@ const App: React.FC = () => {
       ...prev,
       personalCategories: typeof showCategoryForm === 'object'
         ? prev.personalCategories.map(c => c.id === showCategoryForm.id ? { ...c, name } : c)
-        : [...prev.personalCategories, { id: uuidv4(), name, items: [] }]
+        : [...prev.personalCategories, { id: generateId(), name, items: [] }]
     }));
     setShowCategoryForm(false);
   };
@@ -194,7 +187,7 @@ const App: React.FC = () => {
           ...c,
           items: showItemForm.item
             ? c.items.map(i => i.id === showItemForm.item!.id ? { ...i, name } : i)
-            : [...c.items, { id: uuidv4(), name, subItems: [] }]
+            : [...c.items, { id: generateId(), name, subItems: [] }]
         } : c
       )
     }));
@@ -218,7 +211,7 @@ const App: React.FC = () => {
               ...item,
               subItems: showSubItemForm.subItem
                 ? item.subItems.map(s => s.id === showSubItemForm.subItem!.id ? { ...s, heading, value } : s)
-                : [...item.subItems, { id: uuidv4(), heading, value }]
+                : [...item.subItems, { id: generateId(), heading, value }]
             } : item
           )
         } : cat
@@ -226,22 +219,6 @@ const App: React.FC = () => {
     }));
     setShowSubItemForm(null);
   };
-
-  // Helper delete functions
-  const deleteVision = (id: string) => confirm("Delete vision?") && setData(prev => ({ ...prev, visions: prev.visions.filter(v => v.id !== id) }));
-  const deleteGoal = (id: string) => confirm("Delete goal?") && setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }));
-  const deleteCategory = (id: string) => confirm("Delete category?") && setData(prev => ({ ...prev, personalCategories: prev.personalCategories.filter(c => c.id !== id) }));
-  const deleteItem = (catId: string, itemId: string) => confirm("Delete item?") && setData(prev => ({
-    ...prev,
-    personalCategories: prev.personalCategories.map(c => c.id === catId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c)
-  }));
-  const deleteSubItem = (catId: string, itemId: string, subId: string) => setData(prev => ({
-    ...prev,
-    personalCategories: prev.personalCategories.map(c => c.id === catId ? {
-      ...c,
-      items: c.items.map(i => i.id === itemId ? { ...i, subItems: i.subItems.filter(s => s.id !== subId) } : i)
-    } : c)
-  }));
 
   const sortedTasks = useMemo(() => {
     return [...data.tasks].sort((a, b) => {
@@ -294,8 +271,8 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
           <div>
-            <p className="text-sm font-bold text-indigo-500 uppercase tracking-widest mb-1">Manish sri sai surya routhu</p>
-            <h2 className="text-4xl font-black text-slate-900">
+            <p className="text-sm font-bold text-indigo-500 uppercase tracking-widest mb-1 truncate max-w-xs md:max-w-none">Manish sri sai surya routhu</p>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900">
               {activeTab === 'tasks' && 'Active Operations'}
               {activeTab === 'vision' && 'Life Vision'}
               {activeTab === 'goals' && 'Strategic Goals'}
@@ -319,7 +296,14 @@ const App: React.FC = () => {
         {activeTab === 'tasks' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {sortedTasks.map(task => (
-              <TaskCard key={task.id} task={task} onToggle={toggleTask} onDelete={(id) => confirm("Delete task?") && setData(prev => ({...prev, tasks: prev.tasks.filter(t => t.id !== id)}))} onEdit={setShowTaskForm} onUpdate={(id, u) => setData(prev => ({...prev, tasks: prev.tasks.map(t => t.id === id ? {...t, ...u} : t)}))} />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onToggle={toggleTask} 
+                onDelete={(id) => confirm("Delete task?") && setData(prev => ({...prev, tasks: prev.tasks.filter(t => t.id !== id)}))} 
+                onEdit={setShowTaskForm} 
+                onUpdate={(id, u) => setData(prev => ({...prev, tasks: prev.tasks.map(t => t.id === id ? {...t, ...u} : t)}))} 
+              />
             ))}
             {data.tasks.length === 0 && <div className="col-span-full py-32 text-center text-slate-300"><Icons.Layers size={48} className="mx-auto mb-4 opacity-20" /><p className="font-bold">No operations deployed.</p></div>}
           </div>
@@ -333,7 +317,7 @@ const App: React.FC = () => {
                 <p className="text-xl font-medium text-slate-800 italic leading-relaxed">"{v.text}"</p>
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => setShowVisionForm(v)} className="p-2 text-slate-300 hover:text-indigo-600"><Icons.Edit size={18} /></button>
-                  <button onClick={() => deleteVision(v.id)} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={18} /></button>
+                  <button onClick={() => confirm("Delete vision?") && setData(prev => ({...prev, visions: prev.visions.filter(x => x.id !== v.id)}))} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={18} /></button>
                 </div>
               </div>
             ))}
@@ -353,7 +337,7 @@ const App: React.FC = () => {
                 </ul>
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => setShowGoalForm(g)} className="p-2 text-slate-300 hover:text-indigo-600"><Icons.Edit size={18} /></button>
-                  <button onClick={() => deleteGoal(g.id)} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={18} /></button>
+                  <button onClick={() => confirm("Delete goal?") && setData(prev => ({...prev, goals: prev.goals.filter(x => x.id !== g.id)}))} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={18} /></button>
                 </div>
               </div>
             ))}
@@ -369,7 +353,7 @@ const App: React.FC = () => {
                   <div className="flex gap-3">
                     <button onClick={() => setShowItemForm({ catId: cat.id })} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold uppercase hover:bg-rose-100 transition-all">+ Item</button>
                     <button onClick={() => setShowCategoryForm(cat)} className="p-2 text-slate-300 hover:text-indigo-600"><Icons.Edit size={20} /></button>
-                    <button onClick={() => deleteCategory(cat.id)} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={20} /></button>
+                    <button onClick={() => confirm("Delete category?") && setData(prev => ({...prev, personalCategories: prev.personalCategories.filter(x => x.id !== cat.id)}))} className="p-2 text-slate-300 hover:text-red-600"><Icons.Delete size={20} /></button>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -378,9 +362,9 @@ const App: React.FC = () => {
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-bold text-slate-800">{item.name}</h4>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                          <button onClick={() => setShowSubItemForm({ catId: cat.id, itemId: item.id })} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">+ Detail</button>
+                          <button onClick={() => setShowSubItemForm({ catId: cat.id, itemId: item.id })} className="text-[10px] font-black uppercase text-indigo-600 hover:underline tracking-widest">+ Detail</button>
                           <button onClick={() => setShowItemForm({ catId: cat.id, item: item })} className="text-slate-300 hover:text-indigo-600"><Icons.Edit size={14} /></button>
-                          <button onClick={() => deleteItem(cat.id, item.id)} className="text-slate-300 hover:text-red-600"><Icons.Delete size={14} /></button>
+                          <button onClick={() => confirm("Delete item?") && setData(prev => ({...prev, personalCategories: prev.personalCategories.map(c => c.id === cat.id ? {...c, items: c.items.filter(i => i.id !== item.id)} : c)}))} className="text-slate-300 hover:text-red-600"><Icons.Delete size={14} /></button>
                         </div>
                       </div>
                       <div className="space-y-3">
@@ -389,9 +373,9 @@ const App: React.FC = () => {
                             <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider mt-1">{sub.heading}</span>
                             <div className="flex items-center gap-3 max-w-[70%]">
                               <span className="text-slate-900 font-bold break-all text-right">{sub.value}</span>
-                              <div className="flex gap-1 opacity-0 group-sub/hover:opacity-100 transition-all shrink-0">
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                                 <button onClick={() => setShowSubItemForm({ catId: cat.id, itemId: item.id, subItem: sub })} className="text-slate-300 hover:text-indigo-600"><Icons.Edit size={12}/></button>
-                                <button onClick={() => deleteSubItem(cat.id, item.id, sub.id)} className="text-slate-300 hover:text-red-600"><Icons.Delete size={12}/></button>
+                                <button onClick={() => setData(prev => ({...prev, personalCategories: prev.personalCategories.map(c => c.id === cat.id ? {...c, items: c.items.map(i => i.id === item.id ? {...i, subItems: i.subItems.filter(s => s.id !== sub.id)} : i)} : c)}))} className="text-slate-300 hover:text-red-600"><Icons.Delete size={12}/></button>
                               </div>
                             </div>
                           </div>
@@ -411,7 +395,6 @@ const App: React.FC = () => {
       </aside>
 
       {/* --- MODALS --- */}
-
       {showGhSettings && <GitHubSettings config={ghConfig} onSave={(c) => { setGhConfig(c); setShowGhSettings(false); }} onClose={() => setShowGhSettings(false)} />}
 
       {showTaskForm && (
@@ -422,8 +405,8 @@ const App: React.FC = () => {
               <button onClick={() => setShowTaskForm(false)} className="hover:rotate-90 transition-transform"><Icons.Plus className="rotate-45" size={32} /></button>
             </div>
             <form onSubmit={handleTaskSubmit} className="p-8 space-y-6 overflow-y-auto">
-              <input name="title" required defaultValue={typeof showTaskForm === 'object' ? showTaskForm.title : ''} placeholder="Task Headline" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg" />
-              <div className="grid grid-cols-2 gap-4">
+              <input name="title" required defaultValue={typeof showTaskForm === 'object' ? showTaskForm.title : ''} placeholder="Task Headline" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg focus:ring-2 focus:ring-indigo-500" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <select name="category" defaultValue={typeof showTaskForm === 'object' ? showTaskForm.category : 'Work'} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold">
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -446,10 +429,10 @@ const App: React.FC = () => {
                 </select>
               </div>
               <label className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl cursor-pointer">
-                <input name="isSerious" type="checkbox" defaultChecked={typeof showTaskForm === 'object' ? showTaskForm.isSerious : false} className="w-6 h-6 rounded-lg text-red-600 border-none focus:ring-0" />
-                <span className="font-black text-red-700 uppercase text-xs tracking-widest">Mark as High Priority Ops</span>
+                <input name="isSerious" type="checkbox" defaultChecked={typeof showTaskForm === 'object' ? showTaskForm.isSerious : false} className="w-6 h-6 rounded-lg text-red-600 border-none focus:ring-0 shadow-sm" />
+                <span className="font-black text-red-700 uppercase text-xs tracking-widest">High Priority Operations Only</span>
               </label>
-              <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-100 uppercase tracking-widest">Commit Deployment</button>
+              <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-100 uppercase tracking-widest hover:bg-indigo-700">Commit Pulse</button>
             </form>
           </div>
         </div>
@@ -463,8 +446,8 @@ const App: React.FC = () => {
               <button onClick={() => setShowVisionForm(false)}><Icons.Plus className="rotate-45" size={32} /></button>
             </div>
             <form onSubmit={handleVisionSubmit} className="p-8 space-y-6">
-              <textarea name="text" required defaultValue={typeof showVisionForm === 'object' ? showVisionForm.text : ''} placeholder="Distant Vision Statement" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-medium h-32" />
-              <input name="timeline" required defaultValue={typeof showVisionForm === 'object' ? showVisionForm.timeline : ''} placeholder="Target Timeline (e.g. 2030)" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold" />
+              <textarea name="text" required defaultValue={typeof showVisionForm === 'object' ? showVisionForm.text : ''} placeholder="Distant Vision Statement" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-medium h-32 focus:ring-2 focus:ring-blue-500" />
+              <input name="timeline" required defaultValue={typeof showVisionForm === 'object' ? showVisionForm.timeline : ''} placeholder="Target Timeline (e.g. 2030)" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-blue-500" />
               <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl uppercase tracking-widest">Update Vision</button>
             </form>
           </div>
@@ -479,9 +462,9 @@ const App: React.FC = () => {
               <button onClick={() => setShowGoalForm(false)}><Icons.Plus className="rotate-45" size={32} /></button>
             </div>
             <form onSubmit={handleGoalSubmit} className="p-8 space-y-6">
-              <input name="title" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.title : ''} placeholder="Goal Objective" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold text-lg" />
-              <input name="timeline" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.timeline : ''} placeholder="Timeline" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold" />
-              <textarea name="plans" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.plans.join('\n') : ''} placeholder="Actionable Plans (One per line)" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-medium h-48" />
+              <input name="title" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.title : ''} placeholder="Goal Objective" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold text-lg focus:ring-2 focus:ring-purple-500" />
+              <input name="timeline" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.timeline : ''} placeholder="Timeline" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-purple-500" />
+              <textarea name="plans" required defaultValue={typeof showGoalForm === 'object' ? showGoalForm.plans.join('\n') : ''} placeholder="Actionable Plans (One per line)" className="w-full p-5 bg-slate-50 rounded-2xl border-none font-medium h-48 focus:ring-2 focus:ring-purple-500" />
               <button className="w-full py-5 bg-purple-600 text-white rounded-2xl font-black text-xl uppercase tracking-widest">Commit Goal</button>
             </form>
           </div>
