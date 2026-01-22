@@ -1,20 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Manish's Master Plan Deployment Guide
 
-# Run and deploy your AI Studio app
+This application is designed for high-performance personal productivity with private cloud sync via GitHub.
 
-This contains everything you need to run your app locally.
+## 1. Setup Data Repository (Private)
+1. Create a **Private** GitHub repository (e.g., `my-private-data`).
+2. Generate a **Personal Access Token (classic)** at [GitHub Settings](https://github.com/settings/tokens).
+   - Scopes required: `repo` (Full control of private repositories).
+3. Copy this token.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1eR2IuBOoYY0dgHoWwzVE8VutJqr8iSrU
+## 2. Deploy Application to GitHub Pages
+1. Push this code to a new repository.
+2. Go to **Settings > Pages**.
+3. Select **Deploy from a branch** (usually `main`).
+4. Once deployed, visit the URL.
 
-## Run Locally
+## 3. Configure Sync
+1. Open the app.
+2. Click the **Settings (Gear Icon)** in the sidebar.
+3. Enter your Token, Username, and the Data Repo Name created in Step 1.
+4. Click **Save Configuration**.
+5. Click **Save All to GitHub** to initialize your cloud storage.
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Security Note
+This app runs entirely in your browser. Your GitHub token is stored only in your browser's `localStorage` and is never sent to any server other than GitHub's official API.
