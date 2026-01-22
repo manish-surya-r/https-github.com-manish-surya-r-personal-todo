@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { GitHubConfig } from '../types';
-import { Icons } from '../constants';
+import { GitHubConfig } from '../types.ts';
+import { Icons } from '../constants.tsx';
 
 interface Props {
   config: GitHubConfig;
